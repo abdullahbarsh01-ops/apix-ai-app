@@ -1,5 +1,6 @@
 import json
 import urllib.request
+import urllib.parse
 
 
 class AgentEngine:
@@ -7,25 +8,25 @@ class AgentEngine:
         pass
 
     def process_user_intent(self, prompt: str) -> str:
-        url = "https://text.pollinations.ai/"
-
-        payload = {
-            "messages": [
-                {"role": "system", "content": "You are APEX AI, a helpful, futuristic, and highly intelligent AI assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            "model": "openai"
-        }
-
-        headers = {"Content-Type": "application/json"}
-
         try:
+            url = "https://text.pollinations.ai/"
+
+            payload = {
+                "messages": [
+                    {"role": "system", "content": "You are APEX AI, a highly intelligent, helpful, and futuristic AI assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                "model": "openai"
+            }
+
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers=headers
+                headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=30) as response:
-                return response.read().decode("utf-8")
+
+            with urllib.request.urlopen(req, timeout=25) as response:
+                result = response.read().decode("utf-8")
+                return result if result.strip() else "System generated empty response."
         except Exception as e:
-            return f"AI Service Error: {str(e)}"
+            return f"Engine Communication Error: {str(e)}"

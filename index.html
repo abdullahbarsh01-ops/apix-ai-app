@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>APEX AI :: Quantum Engine</title>
+  <title>APEX AI :: Quantum Core</title>
   <style>
     * {
       box-sizing: border-box;
@@ -281,9 +281,7 @@
       <div class="online-dot"></div>
       APEX AI :: QUANTUM CORE
     </div>
-    <div class="chat-messages" id="chatBox">
-      <div class="message bot-message thinking-msg">Initializing connection<span class="thinking-dots"></span></div>
-    </div>
+    <div class="chat-messages" id="chatBox"></div>
     <div class="chat-input-area">
       <div class="input-wrapper">
         <input type="text" id="userInput" placeholder="Synthesize query..."
@@ -342,7 +340,7 @@
           botMsgDiv.textContent = `Server Error (${response.status}): ${JSON.stringify(data)}`;
           enableInputs(true);
         } else {
-          const aiResponse = data.response || "Synthesis complete, but no output generated.";
+          const aiResponse = data.response || "Synthesis complete.";
           typeText(botMsgDiv, aiResponse, 15);
         }
       } catch (error) {
@@ -378,10 +376,9 @@
     window.onload = () => {
       enableInputs(false);
       const initialMsgDiv = appendMessage("", "bot-message thinking-msg");
-      initialMsgDiv.textContent = "Connecting...";
       setTimeout(() => {
         typeText(initialMsgDiv, "Welcome to APEX AI Quantum Core. Synthesize your first query to begin.", 15);
-      }, 1000);
+      }, 500);
     };
 
     const canvas = document.getElementById("bgParticles");
