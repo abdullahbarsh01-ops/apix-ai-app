@@ -1,5 +1,5 @@
-import os
-import google.generativeai as genai
+import json
+import urllib.request
 
 
 class AgentEngine:
@@ -7,17 +7,25 @@ class AgentEngine:
         pass
 
     def process_user_intent(self, prompt: str) -> str:
-        # Extract and clean key string
-        raw_key = os.environ.get("GEMINI_API_KEY", "").strip()
-        api_key = raw_key.strip('"').strip("'").strip()
+        url = "https://text.pollinations.ai/"
 
-        if not api_key:
-            return "Error: GEMINI_API_KEY environment variable is missing on Render."
+        payload = {
+            "messages": [
+                {"role": "system", "content": "You are APEX AI, a helpful, futuristic, and highly intelligent AI assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "model": "openai"
+        }
+
+        headers = {"Content-Type": "application/json"}
 
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
-            return response.text
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers
+            )
+            with urllib.request.urlopen(req, timeout=30) as response:
+                return response.read().decode("utf-8")
         except Exception as e:
-            return f"Gemini API Error: {str(e)}"
+            return f"AI Service Error: {str(e)}"
