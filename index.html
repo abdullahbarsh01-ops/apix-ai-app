@@ -1,17 +1,446 @@
-try {
-const response = await fetch("https://apix-ai-app.onrender.com/chat", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ prompt: text })
-});
+<!DOCTYPE html>
+<html lang="en">
 
-const data = await response.json();
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APEX AI :: Quantum Engine</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      outline: none;
+    }
 
-if (!response.ok) {
-loadingMsg.textContent = `Server Error (${response.status}): ${JSON.stringify(data)}`;
-} else {
-loadingMsg.textContent = data.response || "Empty response from AI.";
-}
-} catch (error) {
-loadingMsg.textContent = "Network/CORS Error: " + error.message;
-}
+    body {
+      background: radial-gradient(circle at center, #1a253a 0%, #0d1117 100%);
+      color: #c9d1d9;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    #bgParticles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 0.6;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 800px;
+      height: 85vh;
+      background: rgba(22, 27, 34, 0.4);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(88, 166, 255, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .chat-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), inset 0 0 50px rgba(88, 166, 255, 0.1);
+    }
+
+    .chat-header {
+      padding: 25px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #ffffff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(13, 17, 23, 0.5);
+    }
+
+    .online-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #2ea043;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #2ea043, 0 0 20px #2ea043;
+      animation: pulse-glow 2s infinite;
+    }
+
+    @keyframes pulse-glow {
+      0% {
+        opacity: 1;
+        box-shadow: 0 0 10px #2ea043;
+      }
+
+      50% {
+        opacity: 0.5;
+        box-shadow: 0 0 25px #2ea043, 0 0 40px #2ea043;
+      }
+
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 10px #2ea043;
+      }
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(88, 166, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 15px 20px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      word-wrap: break-word;
+      position: relative;
+      opacity: 0;
+      animation: message-entrance 0.5s forwards ease;
+    }
+
+    @keyframes message-entrance {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .user-message {
+      align-self: flex-end;
+      color: #ffffff;
+      background: linear-gradient(135deg, #1f6feb 0%, #a371f7 100%);
+      background-size: 200% 200%;
+      animation: message-entrance 0.5s forwards ease, gradient-shift 5s infinite;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 5px 15px rgba(163, 113, 247, 0.3);
+    }
+
+    @keyframes gradient-shift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    .bot-message {
+      align-self: flex-start;
+      background-color: rgba(33, 38, 45, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: #c9d1d9;
+      border-bottom-left-radius: 4px;
+      white-space: pre-wrap;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .thinking-msg {
+      color: rgba(201, 209, 217, 0.6);
+      font-style: italic;
+    }
+
+    .thinking-dots::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+
+    @keyframes dots {
+
+      0%,
+      20% {
+        content: '';
+      }
+
+      40% {
+        content: '.';
+      }
+
+      60% {
+        content: '..';
+      }
+
+      80% {
+        content: '...';
+      }
+
+      100% {
+        content: '';
+      }
+    }
+
+    .chat-input-area {
+      padding: 20px 25px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      gap: 15px;
+      background: rgba(13, 17, 23, 0.5);
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: rgba(13, 17, 23, 0.8);
+      border: 1px solid rgba(88, 166, 255, 0.2);
+      padding: 15px 20px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #a371f7;
+      background: rgba(13, 17, 23, 1);
+      box-shadow: 0 0 15px rgba(163, 113, 247, 0.2);
+    }
+
+    button {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+      color: white;
+      border: none;
+      padding: 0 30px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 5px 15px rgba(35, 134, 54, 0.3);
+      letter-spacing: 1px;
+    }
+
+    button:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(35, 134, 54, 0.5);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bgParticles"></canvas>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="online-dot"></div>
+      APEX AI :: QUANTUM CORE
+    </div>
+    <div class="chat-messages" id="chatBox">
+      <div class="message bot-message thinking-msg">Initializing connection<span class="thinking-dots"></span></div>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <input type="text" id="userInput" placeholder="Synthesize query..."
+          onkeydown="if(event.key === 'Enter') sendMessage()">
+      </div>
+      <button id="sendBtn" onclick="sendMessage()">Transmit</button>
+    </div>
+  </div>
+
+  <script>
+    const RENDER_BACKEND_URL = "https://apix-ai-app.onrender.com/chat";
+
+    function typeText(element, text, speed = 15) {
+      let i = 0;
+      element.textContent = "";
+      element.classList.remove('thinking-msg');
+
+      function type() {
+        if (i < text.length) {
+          const char = text.charAt(i);
+          element.textContent += char;
+          i++;
+          const pause = (char === '.' || char === '!' || char === '?') ? speed * 10 : speed;
+          setTimeout(type, pause);
+        } else {
+          enableInputs(true);
+        }
+      }
+      type();
+    }
+
+    async function sendMessage() {
+      const inputEl = document.getElementById("userInput");
+      const text = inputEl.value.trim();
+
+      if (!text) return;
+
+      appendMessage(text, "user-message");
+      inputEl.value = "";
+      enableInputs(false);
+
+      const botMsgDiv = appendMessage("", "bot-message thinking-msg");
+      botMsgDiv.innerHTML = 'Analyzing query<span class="thinking-dots"></span>';
+
+      try {
+        const response = await fetch(RENDER_BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: text })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          botMsgDiv.classList.remove('thinking-msg');
+          botMsgDiv.textContent = `Server Error (${response.status}): ${JSON.stringify(data)}`;
+          enableInputs(true);
+        } else {
+          const aiResponse = data.response || "Synthesis complete, but no output generated.";
+          typeText(botMsgDiv, aiResponse, 15);
+        }
+      } catch (error) {
+        botMsgDiv.classList.remove('thinking-msg');
+        botMsgDiv.textContent = "Network Error: " + error.message;
+        enableInputs(true);
+      }
+    }
+
+    function appendMessage(text, className) {
+      const chatBox = document.getElementById("chatBox");
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${className}`;
+      msgDiv.textContent = text;
+      chatBox.appendChild(msgDiv);
+      scrollToBottom();
+      return msgDiv;
+    }
+
+    function enableInputs(enable) {
+      const inputEl = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+      inputEl.disabled = !enable;
+      sendBtn.disabled = !enable;
+      if (enable) inputEl.focus();
+    }
+
+    function scrollToBottom() {
+      const chatBox = document.getElementById("chatBox");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    window.onload = () => {
+      enableInputs(false);
+      const initialMsgDiv = appendMessage("", "bot-message thinking-msg");
+      initialMsgDiv.textContent = "Connecting...";
+      setTimeout(() => {
+        typeText(initialMsgDiv, "Welcome to APEX AI Quantum Core. Synthesize your first query to begin.", 15);
+      }, 1000);
+    };
+
+    const canvas = document.getElementById("bgParticles");
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    const particleCount = 60;
+    const connectionDistance = 100;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.4;
+        this.speedY = (Math.random() - 0.5) * 0.4;
+        this.color = Math.random() > 0.5 ? 'rgba(88, 166, 255, 0.6)' : 'rgba(163, 113, 247, 0.6)';
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x > canvas.width) this.x = 0;
+        else if (this.x < 0) this.x = canvas.width;
+        if (this.y > canvas.height) this.y = 0;
+        else if (this.y < 0) this.y = canvas.height;
+      }
+      draw() {
+        ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a; b < particles.length; b++) {
+          const dx = particles[a].x - particles[b].x;
+          const dy = particles[a].y - particles[b].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < connectionDistance) {
+            const opacity = 1 - (dist / connectionDistance);
+            ctx.strokeStyle = `rgba(139, 148, 158, ${opacity * 0.2})`;
+            ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(particles[a].x, particles[a].y); ctx.lineTo(particles[b].x, particles[b].y); ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+  </script>
+</body>
+
+</html>
