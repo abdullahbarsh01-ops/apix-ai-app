@@ -1,12 +1,12 @@
-import base64
-from fastapi import FastAPI, HTTPException
+import os
+from typing import Optional
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agent_engine import AgentEngine
 
-app = FastAPI(title="APEX AI Web API")
+app = FastAPI()
 
-# Allow requests from your Vercel frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,29 +15,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-engine = AgentEngine()
+agent = AgentEngine()
 
 
-class UserPrompt(BaseModel):
-    message: str
-
-# Root route for checking health in browser
+class ChatRequest(BaseModel):
+    prompt: Optional[str] = None
+    message: Optional[str] = None
+    text: Optional[str] = None
+    query: Optional[str] = None
 
 
 @app.get("/")
-def home():
+def read_root():
     return {"status": "APEX AI Cloud Engine is Live!"}
 
-# Main API endpoint for chat and image generation
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    # Extract prompt regardless of key name used by frontend JS
+    user_input = request.prompt or request.message or request.text or request.query or ""
+    if not user_input:
+        return {"response": "Error: Empty prompt received."}
+
+    reply = agent.process_user_intent(user_input)
+    return {"response": reply}
 
 
-@app.post("/api/chat")
-async def chat_endpoint(payload: UserPrompt):
-    try:
-        response = engine.process_user_intent(payload.message)
-        if isinstance(response, dict) and response.get("type") == "image":
-            img_b64 = base64.b64encode(response["image_bytes"]).decode('utf-8')
-            return {"type": "image", "image_b64": img_b64, "prompt": response["raw_prompt"]}
-        return {"type": "text", "response": str(response)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
