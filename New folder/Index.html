@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <title>APEX AI - Web Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col">
+  <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+    <h1 class="text-xl font-bold text-indigo-400">⚡ APEX AI STUDIO</h1>
+    <span class="text-xs bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">Cloud
+      API Active</span>
+  </header>
+
+  <main id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl w-full mx-auto"></main>
+
+  <div class="p-4 bg-slate-900 border-t border-slate-800">
+    <div class="max-w-4xl mx-auto flex gap-3">
+      <input id="user-input" type="text" placeholder="Ask AI to code, generate FLUX art, or research web links..."
+        class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+      <button onclick="sendMsg()"
+        class="bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-lg font-bold text-sm transition">Generate</button>
+    </div>
+  </div>
+
+  <script>
+    async function sendMsg() {
+      const input = document.getElementById('user-input');
+      const box = document.getElementById('chat-box');
+      if (!input.value.trim()) return;
+
+      const userText = input.value;
+      box.innerHTML += `<div class="bg-slate-800 p-4 rounded-lg border border-slate-700"><b>User:</b> ${userText}</div>`;
+      input.value = '';
+
+      const res = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
+      });
+      const data = await res.json();
+
+      if (data.type === 'image') {
+        box.innerHTML += `<div class="bg-slate-900 p-4 rounded-lg border border-slate-800">
+          <img src="data:image/jpeg;base64,${data.image_b64}" class="rounded-lg max-w-md my-2">
+          <p class="text-xs text-slate-400">Prompt: ${data.prompt}</p>
+        </div>`;
+      } else {
+        box.innerHTML += `<div class="bg-slate-900 p-4 rounded-lg border border-slate-800 text-emerald-400"><b>APEX AI:</b><br>${data.response}</div>`;
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+  </script>
+</body>
+
+</html>
