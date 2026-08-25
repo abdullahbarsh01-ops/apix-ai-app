@@ -1,5 +1,5 @@
 import os
-from google import genai
+import google.generativeai as genai
 
 
 class AgentEngine:
@@ -7,19 +7,17 @@ class AgentEngine:
         pass
 
     def process_user_intent(self, prompt: str) -> str:
-        api_key = os.environ.get(
-            "GEMINI_API_KEY", "").strip().strip('"').strip("'")
+        # Extract and clean key string
+        raw_key = os.environ.get("GEMINI_API_KEY", "").strip()
+        api_key = raw_key.strip('"').strip("'").strip()
 
         if not api_key:
             return "Error: GEMINI_API_KEY environment variable is missing on Render."
 
         try:
-            # Initialize client with AQ key support
-            client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-            )
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
             return response.text
         except Exception as e:
             return f"Gemini API Error: {str(e)}"
