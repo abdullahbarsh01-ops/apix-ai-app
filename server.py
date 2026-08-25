@@ -1,7 +1,8 @@
 import os
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from agent_engine import AgentEngine
 
@@ -22,7 +23,6 @@ class ChatRequest(BaseModel):
     prompt: Optional[str] = None
     message: Optional[str] = None
     text: Optional[str] = None
-    query: Optional[str] = None
 
 
 @app.get("/")
@@ -31,17 +31,16 @@ def read_root():
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
-    # Extract prompt regardless of key name used by frontend JS
-    user_input = request.prompt or request.message or request.text or request.query or ""
-    if not user_input:
-        return {"response": "Error: Empty prompt received."}
+async def chat(request: Request):
+    try:
+        body = await request.json()
+        user_input = body.get("prompt") or body.get(
+            "message") or body.get("text") or ""
 
-    reply = agent.process_user_intent(user_input)
-    return {"response": reply}
+        if not user_input:
+            return {"response": "Error: Empty prompt received by server."}
 
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("server:app", host="0.0.0.0", port=port)
+        reply = agent.process_user_intent(user_input)
+        return {"response": reply}
+    except Exception as e:
+        return {"response": f"Server Exception: {str(e)}"}
